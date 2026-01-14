@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/ 
+
+# Virtual Environment
+.venv/
+venv/
+env/
+
+# PyCharm
+.idea/
+*.iml
+
+# Data and Models
+data/
+checkpoints/
+logs/
+
+# System
+.DS_Store
+Thumbs.db
+
+# Local files
+CACHEDIR.TAG
+pyvenv.cfg
+
+# Training checkpoints
+*.pth
+*.ckpt
+*.pt
