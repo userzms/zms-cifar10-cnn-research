@@ -7,7 +7,7 @@ import torch
 class Config:
     # 数据参数
     data_dir = "./data"
-    batch_size = 32
+    batch_size = 64
     num_workers = 0
 
     # 模型参数
@@ -16,7 +16,7 @@ class Config:
     weight_decay = 1e-4
 
     # 训练参数
-    max_epochs = 2
+    max_epochs = 30
     accelerator = "cpu"
     devices = 1
 

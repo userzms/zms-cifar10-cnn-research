@@ -11,9 +11,9 @@ cifar10_cnn/
 ├── data_module.py    # 数据加载模块
 ├── config.py         # 配置参数
 ├── requirements.txt  # 依赖包
+├── experiment_logs   # 实验记录，终端运行结构保存
 └── README.md         # 项目说明
 ```
-
 
 ## 环境要求
 - Python 3.13.11
@@ -28,3 +28,10 @@ cifar10_cnn/
 ## 安装依赖
 ```bash
 pip install -r requirements.txt
+```
+## 实验结果
+
+| 实验 | Epochs | Batch Size | 验证集准确率 | 备注 |
+|------|--------|------------|--------------|------|
+| 1 | 2 | 32 | 64.72% | 快速验证 |
+| 2 | 30 | 64 | 86.62% | 完整训练 |
