@@ -56,10 +56,10 @@ def train():
 
     early_stop_callback = EarlyStopping(
         monitor='val_accuracy',
-        patience=20,
+        patience=30,
         mode='max',
         verbose=True,
-        min_delta=0.001
+        min_delta=0.0005
     )
 
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
