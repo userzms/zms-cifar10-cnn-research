@@ -18,11 +18,13 @@ class CIFAR10DataModule(pl.LightningDataModule):
         if config.train_transform:
             self.train_transform = transforms.Compose([
                 transforms.RandomCrop(32, padding=4),
-                transforms.RandomHorizontalFlip(),
+                transforms.RandomHorizontalFlip(p=0.5),
                 transforms.RandomRotation(15),
-                transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
+                transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.1),
+                transforms.RandomGrayscale(p=0.2),  # 新增
                 transforms.ToTensor(),
-                transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2470, 0.2435, 0.2616))
+                transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2470, 0.2435, 0.2616)),
+                transforms.RandomErasing(p=0.3, scale=(0.02, 0.1))  # 新增
             ])
         else:
             self.train_transform = transforms.Compose([

@@ -19,27 +19,29 @@ class CIFAR10CNN(pl.LightningModule):
         self.save_hyperparameters()
 
         # 卷积层
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=3, padding=1, bias=False)
-        self.bn1 = nn.BatchNorm2d(64)
+        # 增加通道数
+        self.conv1 = nn.Conv2d(3, 96, kernel_size=3, padding=1, bias=False)  # 64→96
+        self.bn1 = nn.BatchNorm2d(96)
 
-        self.conv2 = nn.Conv2d(64, 128, kernel_size=3, padding=1, bias=False)
-        self.bn2 = nn.BatchNorm2d(128)
+        self.conv2 = nn.Conv2d(96, 192, kernel_size=3, padding=1, bias=False)  # 128→192
+        self.bn2 = nn.BatchNorm2d(192)
 
-        self.conv3 = nn.Conv2d(128, 256, kernel_size=3, padding=1, bias=False)
-        self.bn3 = nn.BatchNorm2d(256)
+        self.conv3 = nn.Conv2d(192, 384, kernel_size=3, padding=1, bias=False)  # 256→384
+        self.bn3 = nn.BatchNorm2d(384)
 
-        self.conv4 = nn.Conv2d(256, 512, kernel_size=3, padding=1, bias=False)
+        self.conv4 = nn.Conv2d(384, 512, kernel_size=3, padding=1, bias=False)  # 保持512
         self.bn4 = nn.BatchNorm2d(512)
 
         # 全局平均池化
         self.gap = nn.AdaptiveAvgPool2d(1)
 
         # 全连接层
-        self.fc1 = nn.Linear(512, 256)
+        # 增加全连接层容量
+        self.fc1 = nn.Linear(512, 384)  # 256→384
         self.dropout1 = nn.Dropout(0.3)
-        self.fc2 = nn.Linear(256, 128)
+        self.fc2 = nn.Linear(384, 192)  # 128→192
         self.dropout2 = nn.Dropout(0.2)
-        self.fc3 = nn.Linear(128, config.num_classes)
+        self.fc3 = nn.Linear(192, config.num_classes)
 
         # 损失函数
         self.criterion = nn.CrossEntropyLoss()

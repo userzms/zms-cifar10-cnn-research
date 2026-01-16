@@ -16,7 +16,7 @@ class Config:
     weight_decay = 1e-4
 
     # 训练参数
-    max_epochs = 80
+    max_epochs = 190
     accelerator = "cpu"
     devices = 1
 
