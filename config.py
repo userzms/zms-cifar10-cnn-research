@@ -8,15 +8,15 @@ class Config:
     # 数据参数
     data_dir = "./data"
     batch_size = 64
-    num_workers = 0
+    num_workers = 4
 
     # 模型参数
     num_classes = 10
-    learning_rate = 0.001
+    learning_rate = 0.01
     weight_decay = 1e-4
 
     # 训练参数
-    max_epochs = 190
+    max_epochs = 100
     accelerator = "cpu"
     devices = 1
 

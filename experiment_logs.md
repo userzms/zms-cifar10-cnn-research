@@ -752,3 +752,240 @@ Training completed!
 - 问题分析：
     - 训练时间过长，但提升有限：190个epoch后，验证准确率仅达到90.94%，后期提升非常缓慢
     - 学习率策略不够激进：余弦退火学习率在后期学习率过低，无法有效突破瓶颈
+
+## 实验5：优化后的完整测试
+- 时间：2026年1月16日
+- 配置：batch_size=64, max_epochs=100
+- 结果：测试准确率 91.20%
+- 性能分析  
+起始准确率：50.16%（Epoch 0）  
+总提升：41.04个百分点
+- 做出的改进：  
+1.在CNN模型中加入CBAM（Convolutional Block Attention Module）注意力机制，提升模型性能而不大幅增加计算成本。CBAM通过空间注意力和通道注意力两种机制，让模型学会关注更重要的特征区域和通道，对于细粒度分类任务（如CIFAR10）有效。  
+2.优化学习率调度器，使用OneCycleLR策略，在训练初期快速提高学习率，然后在后期缓慢下降。
+- 技术原理：  
+1.CBAM注意力机制：包含两个子模块  
+  (1)通道注意力模块：使用全局平均池化和最大池化来获取通道重要性  
+  (2)空间注意力模块：在通道维度上应用池化操作来获取空间重要性
+2.OneCycleLR策略：允许学习率先快速上升再缓慢下降，有助于模型快速收敛并避免陷入局部最小值
+
+- 命令行输出：
+
+```bash
+(.venv) PS E:\python_exercises\zms_cifar10_cnn> python train.py
+============================================================
+CIFAR10 CNN Training - Target: 93%+ Accuracy
+============================================================
+GPU Not Available, using CPU
+
+Loading CIFAR10 dataset...
+E:\python_exercises\zms_cifar10_cnn\.venv\Lib\site-packages\torchvision\datasets\cifar.py:83: VisibleDeprecationWarning: dtype(): align should be passed as Python or NumPy boolean but got `align=0`. Did you mean to pass a tuple to create a subarray type? (Deprecated NumPy 2.4)
+  entry = pickle.load(f, encoding="latin1")
+Initializing CNN model...
+Model Parameters: Total=2,934,066, Trainable=2,934,066
+GPU available: False, used: False
+TPU available: False, using: 0 TPU cores
+
+Starting training...
+Max Epochs: 100
+Target Accuracy: 93%+
+============================================================
+E:\python_exercises\zms_cifar10_cnn\.venv\Lib\site-packages\pytorch_lightning\callbacks\model_checkpoint.py:881: Checkpoint directory E:\python_exercises\zms_cifar10_cnn\checkpoints exists and is not empty.
+
+   | Name      | Type               | Params | Mode  | FLOPs
+------------------------------------------------------------------
+0  | conv1     | Conv2d             | 2.6 K  | train | 0    
+1  | bn1       | BatchNorm2d        | 192    | train | 0    
+2  | cbam1     | CBAM               | 1.2 K  | train | 0    
+3  | conv2     | Conv2d             | 165 K  | train | 0    
+4  | bn2       | BatchNorm2d        | 384    | train | 0    
+5  | cbam2     | CBAM               | 4.7 K  | train | 0    
+6  | conv3     | Conv2d             | 663 K  | train | 0    
+7  | bn3       | BatchNorm2d        | 768    | train | 0    
+8  | cbam3     | CBAM               | 18.5 K | train | 0    
+9  | conv4     | Conv2d             | 1.8 M  | train | 0    
+10 | bn4       | BatchNorm2d        | 1.0 K  | train | 0    
+11 | cbam4     | CBAM               | 32.9 K | train | 0    
+12 | gap       | AdaptiveAvgPool2d  | 0      | train | 0    
+13 | fc1       | Linear             | 196 K  | train | 0    
+14 | dropout1  | Dropout            | 0      | train | 0    
+15 | fc2       | Linear             | 73.9 K | train | 0    
+16 | dropout2  | Dropout            | 0      | train | 0    
+17 | fc3       | Linear             | 1.9 K  | train | 0    
+18 | criterion | CrossEntropyLoss   | 0      | train | 0    
+19 | train_acc | MulticlassAccuracy | 0      | train | 0    
+20 | val_acc   | MulticlassAccuracy | 0      | train | 0    
+21 | test_acc  | MulticlassAccuracy | 0      | train | 0    
+------------------------------------------------------------------
+2.9 M     Trainable params
+0         Non-trainable params
+2.9 M     Total params
+11.736    Total estimated model params size (MB)
+54        Modules in train mode
+0         Modules in eval mode
+0         Total Flops
+Sanity Checking: |                                                                               | 0/? [00:00<?, ?it/s]E:\python_exercises\zms_cifar10_cnn\.venv\Lib\site-packages\pytorch_lightning\trainer\connectors\data_connector.py:429: Consider setting `persistent_workers=True` in 'val_dataloader' to speed up the dataloader worker initialization.
+E:\python_exercises\zms_cifar10_cnn\.venv\Lib\site-packages\torch\utils\data\dataloader.py:668: UserWarning: 'pin_memory' argument is set as true but no accelerator is found, then device pinned memory won't be used.
+  warnings.warn(warn_msg)
+E:\python_exercises\zms_cifar10_cnn\.venv\Lib\site-packages\pytorch_lightning\trainer\connectors\data_connector.py:429: Consider setting `persistent_workers=True` in 'train_dataloader' to speed up the dataloader worker initialization.
+Epoch 0: 100%|█| 782/782 [03:16<00:00,  3.98it/s, v_num=5, train_loss=1.490, train_acc=0.375, val_loss=1.560, val_accurMetric val_accuracy improved. New best score: 0.502                                                                     
+Epoch 0, global step 782: 'val_accuracy' reached 0.50160 (best 0.50160), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=00-val_accuracy=0.5016.ckpt' as top 3
+Epoch 1: 100%|█| 782/782 [03:27<00:00,  3.77it/s, v_num=5, train_loss=1.270, train_acc=0.688, val_loss=1.400, val_accurMetric val_accuracy improved by 0.096 >= min_delta = 0.0005. New best score: 0.597                                      
+Epoch 1, global step 1564: 'val_accuracy' reached 0.59730 (best 0.59730), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=01-val_accuracy=0.5973.ckpt' as top 3
+Epoch 2: 100%|█| 782/782 [03:29<00:00,  3.73it/s, v_num=5, train_loss=1.550, train_acc=0.562, val_loss=1.240, val_accurMetric val_accuracy improved by 0.067 >= min_delta = 0.0005. New best score: 0.664                                      
+Epoch 2, global step 2346: 'val_accuracy' reached 0.66410 (best 0.66410), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=02-val_accuracy=0.6641.ckpt' as top 3
+Epoch 3: 100%|█| 782/782 [03:31<00:00,  3.69it/s, v_num=5, train_loss=1.450, train_acc=0.500, val_loss=1.440, val_accurEpoch 3, global step 3128: 'val_accuracy' reached 0.57930 (best 0.66410), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=03-val_accuracy=0.5793.ckpt' as top 3
+Epoch 4: 100%|█| 782/782 [03:28<00:00,  3.75it/s, v_num=5, train_loss=1.410, train_acc=0.688, val_loss=1.160, val_accurMetric val_accuracy improved by 0.045 >= min_delta = 0.0005. New best score: 0.709                                      
+Epoch 4, global step 3910: 'val_accuracy' reached 0.70930 (best 0.70930), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=04-val_accuracy=0.7093.ckpt' as top 3
+Epoch 5: 100%|█| 782/782 [03:29<00:00,  3.73it/s, v_num=5, train_loss=1.440, train_acc=0.562, val_loss=1.320, val_accurEpoch 5, global step 4692: 'val_accuracy' reached 0.63510 (best 0.70930), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=05-val_accuracy=0.6351.ckpt' as top 3
+Epoch 6: 100%|█| 782/782 [03:31<00:00,  3.70it/s, v_num=5, train_loss=1.240, train_acc=0.562, val_loss=1.150, val_accurEpoch 6, global step 5474: 'val_accuracy' reached 0.70940 (best 0.70940), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=06-val_accuracy=0.7094.ckpt' as top 3
+Epoch 7: 100%|█| 782/782 [03:36<00:00,  3.61it/s, v_num=5, train_loss=1.440, train_acc=0.688, val_loss=1.140, val_accurMetric val_accuracy improved by 0.005 >= min_delta = 0.0005. New best score: 0.715                                      
+Epoch 7, global step 6256: 'val_accuracy' reached 0.71470 (best 0.71470), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=07-val_accuracy=0.7147.ckpt' as top 3
+Epoch 8: 100%|█| 782/782 [03:36<00:00,  3.61it/s, v_num=5, train_loss=0.975, train_acc=0.812, val_loss=1.080, val_accurMetric val_accuracy improved by 0.037 >= min_delta = 0.0005. New best score: 0.752                                      
+Epoch 8, global step 7038: 'val_accuracy' reached 0.75190 (best 0.75190), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=08-val_accuracy=0.7519.ckpt' as top 3
+Epoch 9: 100%|█| 782/782 [03:29<00:00,  3.74it/s, v_num=5, train_loss=1.420, train_acc=0.625, val_loss=1.050, val_accurMetric val_accuracy improved by 0.002 >= min_delta = 0.0005. New best score: 0.754                                      
+Epoch 9, global step 7820: 'val_accuracy' reached 0.75440 (best 0.75440), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=09-val_accuracy=0.7544.ckpt' as top 3
+Epoch 10: 100%|█| 782/782 [03:32<00:00,  3.68it/s, v_num=5, train_loss=1.090, train_acc=0.750, val_loss=1.030, val_accuMetric val_accuracy improved by 0.017 >= min_delta = 0.0005. New best score: 0.771                                      
+Epoch 10, global step 8602: 'val_accuracy' reached 0.77140 (best 0.77140), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=10-val_accuracy=0.7714.ckpt' as top 3
+Epoch 11: 100%|█| 782/782 [03:28<00:00,  3.75it/s, v_num=5, train_loss=0.928, train_acc=0.750, val_loss=1.000, val_accuMetric val_accuracy improved by 0.007 >= min_delta = 0.0005. New best score: 0.779                                      
+Epoch 11, global step 9384: 'val_accuracy' reached 0.77860 (best 0.77860), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=11-val_accuracy=0.7786.ckpt' as top 3
+Epoch 12: 100%|█| 782/782 [03:29<00:00,  3.74it/s, v_num=5, train_loss=1.180, train_acc=0.688, val_loss=1.050, val_accuEpoch 12, global step 10166: 'val_accuracy' reached 0.76240 (best 0.77860), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=12-val_accuracy=0.7624.ckpt' as top 3
+Epoch 13: 100%|█| 782/782 [03:28<00:00,  3.75it/s, v_num=5, train_loss=1.360, train_acc=0.688, val_loss=1.020, val_accuMetric val_accuracy improved by 0.001 >= min_delta = 0.0005. New best score: 0.780                                      
+Epoch 13, global step 10948: 'val_accuracy' reached 0.77980 (best 0.77980), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=13-val_accuracy=0.7798.ckpt' as top 3
+Epoch 14: 100%|█| 782/782 [03:29<00:00,  3.74it/s, v_num=5, train_loss=0.855, train_acc=0.875, val_loss=0.994, val_accuMetric val_accuracy improved by 0.012 >= min_delta = 0.0005. New best score: 0.792                                      
+Epoch 14, global step 11730: 'val_accuracy' reached 0.79220 (best 0.79220), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=14-val_accuracy=0.7922.ckpt' as top 3
+Epoch 15: 100%|█| 782/782 [03:33<00:00,  3.67it/s, v_num=5, train_loss=1.030, train_acc=0.688, val_loss=1.040, val_accuEpoch 15, global step 12512: 'val_accuracy' was not in top 3                                                            
+Epoch 16: 100%|█| 782/782 [03:36<00:00,  3.60it/s, v_num=5, train_loss=1.260, train_acc=0.750, val_loss=1.000, val_accuEpoch 16, global step 13294: 'val_accuracy' reached 0.78310 (best 0.79220), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=16-val_accuracy=0.7831.ckpt' as top 3
+Epoch 17: 100%|█| 782/782 [03:37<00:00,  3.60it/s, v_num=5, train_loss=1.350, train_acc=0.625, val_loss=1.020, val_accuEpoch 17, global step 14076: 'val_accuracy' was not in top 3                                                            
+Epoch 18: 100%|█| 782/782 [03:39<00:00,  3.56it/s, v_num=5, train_loss=1.510, train_acc=0.500, val_loss=1.070, val_accuEpoch 18, global step 14858: 'val_accuracy' was not in top 3                                                            
+Epoch 19: 100%|█| 782/782 [03:31<00:00,  3.70it/s, v_num=5, train_loss=0.884, train_acc=0.812, val_loss=1.010, val_accuEpoch 19, global step 15640: 'val_accuracy' reached 0.78160 (best 0.79220), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=19-val_accuracy=0.7816.ckpt' as top 3
+Epoch 20: 100%|█| 782/782 [03:36<00:00,  3.60it/s, v_num=5, train_loss=1.090, train_acc=0.812, val_loss=0.976, val_accuMetric val_accuracy improved by 0.004 >= min_delta = 0.0005. New best score: 0.797                                      
+Epoch 20, global step 16422: 'val_accuracy' reached 0.79670 (best 0.79670), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=20-val_accuracy=0.7967.ckpt' as top 3
+Epoch 21: 100%|█| 782/782 [03:34<00:00,  3.64it/s, v_num=5, train_loss=1.120, train_acc=0.625, val_loss=1.070, val_accuEpoch 21, global step 17204: 'val_accuracy' was not in top 3                                                            
+Epoch 22: 100%|█| 782/782 [03:40<00:00,  3.55it/s, v_num=5, train_loss=0.966, train_acc=0.750, val_loss=1.040, val_accuEpoch 22, global step 17986: 'val_accuracy' was not in top 3                                                            
+Epoch 23: 100%|█| 782/782 [03:42<00:00,  3.52it/s, v_num=5, train_loss=1.400, train_acc=0.625, val_loss=0.974, val_accuMetric val_accuracy improved by 0.003 >= min_delta = 0.0005. New best score: 0.800                                      
+Epoch 23, global step 18768: 'val_accuracy' reached 0.79970 (best 0.79970), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=23-val_accuracy=0.7997.ckpt' as top 3
+Epoch 24: 100%|█| 782/782 [04:18<00:00,  3.02it/s, v_num=5, train_loss=1.350, train_acc=0.688, val_loss=1.110, val_accuMetric val_accuracy improved by 0.005 >= min_delta = 0.0005. New best score: 0.805                                      
+Epoch 24, global step 19550: 'val_accuracy' reached 0.80460 (best 0.80460), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=24-val_accuracy=0.8046.ckpt' as top 3
+Epoch 25: 100%|█| 782/782 [05:13<00:00,  2.49it/s, v_num=5, train_loss=0.885, train_acc=0.875, val_loss=0.945, val_accuMetric val_accuracy improved by 0.008 >= min_delta = 0.0005. New best score: 0.813                                      
+Epoch 25, global step 20332: 'val_accuracy' reached 0.81290 (best 0.81290), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=25-val_accuracy=0.8129.ckpt' as top 3
+Epoch 26: 100%|█| 782/782 [05:19<00:00,  2.45it/s, v_num=5, train_loss=1.090, train_acc=0.750, val_loss=1.060, val_accuEpoch 26, global step 21114: 'val_accuracy' was not in top 3                                                            
+Epoch 27: 100%|█| 782/782 [05:20<00:00,  2.44it/s, v_num=5, train_loss=1.150, train_acc=0.625, val_loss=0.971, val_accuMetric val_accuracy improved by 0.002 >= min_delta = 0.0005. New best score: 0.815                                      
+Epoch 27, global step 21896: 'val_accuracy' reached 0.81520 (best 0.81520), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=27-val_accuracy=0.8152.ckpt' as top 3
+Epoch 28: 100%|█| 782/782 [05:26<00:00,  2.40it/s, v_num=5, train_loss=1.080, train_acc=0.812, val_loss=0.927, val_accuMetric val_accuracy improved by 0.006 >= min_delta = 0.0005. New best score: 0.822                                      
+Epoch 28, global step 22678: 'val_accuracy' reached 0.82160 (best 0.82160), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=28-val_accuracy=0.8216.ckpt' as top 3
+Epoch 29: 100%|█| 782/782 [05:31<00:00,  2.36it/s, v_num=5, train_loss=1.220, train_acc=0.625, val_loss=0.922, val_accuEpoch 29, global step 23460: 'val_accuracy' reached 0.81840 (best 0.82160), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=29-val_accuracy=0.8184.ckpt' as top 3
+Epoch 30: 100%|█| 782/782 [05:41<00:00,  2.29it/s, v_num=5, train_loss=1.190, train_acc=0.750, val_loss=0.918, val_accuMetric val_accuracy improved by 0.003 >= min_delta = 0.0005. New best score: 0.825                                      
+Epoch 30, global step 24242: 'val_accuracy' reached 0.82450 (best 0.82450), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=30-val_accuracy=0.8245.ckpt' as top 3
+Epoch 31: 100%|█| 782/782 [05:41<00:00,  2.29it/s, v_num=5, train_loss=1.240, train_acc=0.750, val_loss=0.912, val_accuMetric val_accuracy improved by 0.012 >= min_delta = 0.0005. New best score: 0.837                                      
+Epoch 31, global step 25024: 'val_accuracy' reached 0.83690 (best 0.83690), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=31-val_accuracy=0.8369.ckpt' as top 3
+Epoch 32: 100%|█| 782/782 [05:47<00:00,  2.25it/s, v_num=5, train_loss=1.070, train_acc=0.812, val_loss=0.893, val_accuMetric val_accuracy improved by 0.002 >= min_delta = 0.0005. New best score: 0.839                                      
+Epoch 32, global step 25806: 'val_accuracy' reached 0.83870 (best 0.83870), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=32-val_accuracy=0.8387.ckpt' as top 3
+Epoch 33: 100%|█| 782/782 [05:36<00:00,  2.32it/s, v_num=5, train_loss=1.550, train_acc=0.562, val_loss=0.906, val_accuEpoch 33, global step 26588: 'val_accuracy' reached 0.82920 (best 0.83870), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=33-val_accuracy=0.8292.ckpt' as top 3
+Epoch 34: 100%|█| 782/782 [05:35<00:00,  2.33it/s, v_num=5, train_loss=0.836, train_acc=0.812, val_loss=0.912, val_accuEpoch 34, global step 27370: 'val_accuracy' was not in top 3                                                            
+Epoch 35: 100%|█| 782/782 [05:16<00:00,  2.47it/s, v_num=5, train_loss=0.870, train_acc=0.938, val_loss=1.040, val_accuEpoch 35, global step 28152: 'val_accuracy' was not in top 3                                                            
+Epoch 36: 100%|█| 782/782 [05:41<00:00,  2.29it/s, v_num=5, train_loss=0.868, train_acc=0.875, val_loss=0.949, val_accuEpoch 36, global step 28934: 'val_accuracy' was not in top 3                                                            
+Epoch 37: 100%|█| 782/782 [05:40<00:00,  2.30it/s, v_num=5, train_loss=1.500, train_acc=0.625, val_loss=1.000, val_accuEpoch 37, global step 29716: 'val_accuracy' was not in top 3                                                            
+Epoch 38: 100%|█| 782/782 [05:47<00:00,  2.25it/s, v_num=5, train_loss=1.360, train_acc=0.562, val_loss=0.867, val_accuMetric val_accuracy improved by 0.008 >= min_delta = 0.0005. New best score: 0.846                                      
+Epoch 38, global step 30498: 'val_accuracy' reached 0.84650 (best 0.84650), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=38-val_accuracy=0.8465.ckpt' as top 3
+Epoch 39: 100%|█| 782/782 [05:46<00:00,  2.26it/s, v_num=5, train_loss=0.842, train_acc=0.938, val_loss=0.872, val_accuMetric val_accuracy improved by 0.002 >= min_delta = 0.0005. New best score: 0.848                                      
+Epoch 39, global step 31280: 'val_accuracy' reached 0.84820 (best 0.84820), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=39-val_accuracy=0.8482.ckpt' as top 3
+Epoch 40: 100%|█| 782/782 [05:46<00:00,  2.25it/s, v_num=5, train_loss=1.340, train_acc=0.688, val_loss=0.900, val_accuEpoch 40, global step 32062: 'val_accuracy' reached 0.84090 (best 0.84820), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=40-val_accuracy=0.8409.ckpt' as top 3
+Epoch 41: 100%|█| 782/782 [05:41<00:00,  2.29it/s, v_num=5, train_loss=0.874, train_acc=0.875, val_loss=0.836, val_accuMetric val_accuracy improved by 0.009 >= min_delta = 0.0005. New best score: 0.857                                      
+Epoch 41, global step 32844: 'val_accuracy' reached 0.85700 (best 0.85700), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=41-val_accuracy=0.8570.ckpt' as top 3
+Epoch 42: 100%|█| 782/782 [05:58<00:00,  2.18it/s, v_num=5, train_loss=1.130, train_acc=0.750, val_loss=0.853, val_accuEpoch 42, global step 33626: 'val_accuracy' reached 0.85550 (best 0.85700), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=42-val_accuracy=0.8555.ckpt' as top 3
+Epoch 43: 100%|█| 782/782 [05:56<00:00,  2.19it/s, v_num=5, train_loss=1.080, train_acc=0.688, val_loss=0.878, val_accuEpoch 43, global step 34408: 'val_accuracy' was not in top 3                                                            
+Epoch 44: 100%|█| 782/782 [05:46<00:00,  2.25it/s, v_num=5, train_loss=0.880, train_acc=0.812, val_loss=0.863, val_accuEpoch 44, global step 35190: 'val_accuracy' was not in top 3                                                            
+Epoch 45: 100%|█| 782/782 [05:47<00:00,  2.25it/s, v_num=5, train_loss=0.926, train_acc=0.875, val_loss=0.875, val_accuEpoch 45, global step 35972: 'val_accuracy' was not in top 3                                                            
+Epoch 46: 100%|█| 782/782 [06:14<00:00,  2.09it/s, v_num=5, train_loss=0.851, train_acc=0.875, val_loss=0.835, val_accuMetric val_accuracy improved by 0.003 >= min_delta = 0.0005. New best score: 0.860                                      
+Epoch 46, global step 36754: 'val_accuracy' reached 0.86010 (best 0.86010), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=46-val_accuracy=0.8601.ckpt' as top 3
+Epoch 47: 100%|█| 782/782 [05:52<00:00,  2.22it/s, v_num=5, train_loss=1.110, train_acc=0.688, val_loss=0.857, val_accuEpoch 47, global step 37536: 'val_accuracy' reached 0.85920 (best 0.86010), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=47-val_accuracy=0.8592.ckpt' as top 3
+Epoch 48: 100%|█| 782/782 [06:05<00:00,  2.14it/s, v_num=5, train_loss=0.923, train_acc=0.875, val_loss=0.850, val_accuEpoch 48, global step 38318: 'val_accuracy' was not in top 3                                                            
+Epoch 49: 100%|█| 782/782 [06:13<00:00,  2.09it/s, v_num=5, train_loss=0.856, train_acc=0.875, val_loss=0.893, val_accuEpoch 49, global step 39100: 'val_accuracy' was not in top 3                                                            
+Epoch 50: 100%|█| 782/782 [06:13<00:00,  2.09it/s, v_num=5, train_loss=1.050, train_acc=0.750, val_loss=0.834, val_accuEpoch 50, global step 39882: 'val_accuracy' reached 0.85780 (best 0.86010), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=50-val_accuracy=0.8578.ckpt' as top 3
+Epoch 51: 100%|█| 782/782 [06:15<00:00,  2.08it/s, v_num=5, train_loss=0.886, train_acc=0.875, val_loss=0.812, val_accuMetric val_accuracy improved by 0.012 >= min_delta = 0.0005. New best score: 0.872                                      
+Epoch 51, global step 40664: 'val_accuracy' reached 0.87180 (best 0.87180), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=51-val_accuracy=0.8718.ckpt' as top 3
+Epoch 52: 100%|█| 782/782 [06:01<00:00,  2.16it/s, v_num=5, train_loss=1.120, train_acc=0.750, val_loss=0.814, val_accuEpoch 52, global step 41446: 'val_accuracy' reached 0.86900 (best 0.87180), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=52-val_accuracy=0.8690.ckpt' as top 3
+Epoch 53: 100%|█| 782/782 [05:38<00:00,  2.31it/s, v_num=5, train_loss=1.060, train_acc=0.750, val_loss=0.815, val_accuEpoch 53, global step 42228: 'val_accuracy' reached 0.86610 (best 0.87180), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=53-val_accuracy=0.8661.ckpt' as top 3
+Epoch 54: 100%|█| 782/782 [06:05<00:00,  2.14it/s, v_num=5, train_loss=0.805, train_acc=0.875, val_loss=0.799, val_accuMetric val_accuracy improved by 0.002 >= min_delta = 0.0005. New best score: 0.874                                      
+Epoch 54, global step 43010: 'val_accuracy' reached 0.87360 (best 0.87360), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=54-val_accuracy=0.8736.ckpt' as top 3
+Epoch 55: 100%|█| 782/782 [05:35<00:00,  2.33it/s, v_num=5, train_loss=1.080, train_acc=0.812, val_loss=0.797, val_accuMetric val_accuracy improved by 0.004 >= min_delta = 0.0005. New best score: 0.878                                      
+Epoch 55, global step 43792: 'val_accuracy' reached 0.87780 (best 0.87780), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=55-val_accuracy=0.8778.ckpt' as top 3
+Epoch 56: 100%|█| 782/782 [06:08<00:00,  2.12it/s, v_num=5, train_loss=0.808, train_acc=0.875, val_loss=0.797, val_accuEpoch 56, global step 44574: 'val_accuracy' reached 0.87290 (best 0.87780), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=56-val_accuracy=0.8729.ckpt' as top 3
+Epoch 57: 100%|█| 782/782 [06:02<00:00,  2.16it/s, v_num=5, train_loss=0.662, train_acc=0.938, val_loss=0.812, val_accuEpoch 57, global step 45356: 'val_accuracy' reached 0.87320 (best 0.87780), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=57-val_accuracy=0.8732.ckpt' as top 3
+Epoch 58: 100%|█| 782/782 [06:19<00:00,  2.06it/s, v_num=5, train_loss=1.160, train_acc=0.688, val_loss=0.896, val_accuEpoch 58, global step 46138: 'val_accuracy' was not in top 3                                                            
+Epoch 59: 100%|█| 782/782 [06:29<00:00,  2.01it/s, v_num=5, train_loss=0.928, train_acc=0.812, val_loss=0.813, val_accuEpoch 59, global step 46920: 'val_accuracy' reached 0.87600 (best 0.87780), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=59-val_accuracy=0.8760.ckpt' as top 3
+Epoch 60: 100%|█| 782/782 [06:26<00:00,  2.02it/s, v_num=5, train_loss=1.170, train_acc=0.750, val_loss=0.814, val_accuMetric val_accuracy improved by 0.001 >= min_delta = 0.0005. New best score: 0.879                                      
+Epoch 60, global step 47702: 'val_accuracy' reached 0.87860 (best 0.87860), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=60-val_accuracy=0.8786.ckpt' as top 3
+Epoch 61: 100%|█| 782/782 [06:24<00:00,  2.03it/s, v_num=5, train_loss=1.020, train_acc=0.750, val_loss=0.786, val_accuMetric val_accuracy improved by 0.005 >= min_delta = 0.0005. New best score: 0.884                                      
+Epoch 61, global step 48484: 'val_accuracy' reached 0.88380 (best 0.88380), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=61-val_accuracy=0.8838.ckpt' as top 3
+Epoch 62: 100%|█| 782/782 [06:00<00:00,  2.17it/s, v_num=5, train_loss=0.967, train_acc=0.812, val_loss=0.783, val_accuEpoch 62, global step 49266: 'val_accuracy' reached 0.88210 (best 0.88380), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=62-val_accuracy=0.8821.ckpt' as top 3
+Epoch 63: 100%|█| 782/782 [06:35<00:00,  1.98it/s, v_num=5, train_loss=0.790, train_acc=0.875, val_loss=0.760, val_accuMetric val_accuracy improved by 0.006 >= min_delta = 0.0005. New best score: 0.890                                      
+Epoch 63, global step 50048: 'val_accuracy' reached 0.88960 (best 0.88960), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=63-val_accuracy=0.8896.ckpt' as top 3
+Epoch 64: 100%|█| 782/782 [06:28<00:00,  2.01it/s, v_num=5, train_loss=0.974, train_acc=0.875, val_loss=0.752, val_accuMetric val_accuracy improved by 0.002 >= min_delta = 0.0005. New best score: 0.891                                      
+Epoch 64, global step 50830: 'val_accuracy' reached 0.89150 (best 0.89150), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=64-val_accuracy=0.8915.ckpt' as top 3
+Epoch 65: 100%|█| 782/782 [06:29<00:00,  2.01it/s, v_num=5, train_loss=0.994, train_acc=0.812, val_loss=0.750, val_accuMetric val_accuracy improved by 0.006 >= min_delta = 0.0005. New best score: 0.898                                      
+Epoch 65, global step 51612: 'val_accuracy' reached 0.89790 (best 0.89790), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=65-val_accuracy=0.8979.ckpt' as top 3
+Epoch 66: 100%|█| 782/782 [06:35<00:00,  1.98it/s, v_num=5, train_loss=0.729, train_acc=0.875, val_loss=0.752, val_accuEpoch 66, global step 52394: 'val_accuracy' reached 0.89490 (best 0.89790), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=66-val_accuracy=0.8949.ckpt' as top 3
+Epoch 67: 100%|█| 782/782 [06:44<00:00,  1.93it/s, v_num=5, train_loss=0.888, train_acc=0.875, val_loss=0.758, val_accuEpoch 67, global step 53176: 'val_accuracy' reached 0.89300 (best 0.89790), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=67-val_accuracy=0.8930.ckpt' as top 3
+Epoch 68: 100%|█| 782/782 [06:25<00:00,  2.03it/s, v_num=5, train_loss=0.959, train_acc=0.812, val_loss=0.754, val_accuEpoch 68, global step 53958: 'val_accuracy' reached 0.89580 (best 0.89790), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=68-val_accuracy=0.8958.ckpt' as top 3
+Epoch 69: 100%|█| 782/782 [06:09<00:00,  2.12it/s, v_num=5, train_loss=0.839, train_acc=0.938, val_loss=0.746, val_accuEpoch 69, global step 54740: 'val_accuracy' reached 0.89580 (best 0.89790), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=69-val_accuracy=0.8958.ckpt' as top 3
+Epoch 70: 100%|█| 782/782 [06:26<00:00,  2.02it/s, v_num=5, train_loss=0.811, train_acc=0.875, val_loss=0.747, val_accuEpoch 70, global step 55522: 'val_accuracy' reached 0.89770 (best 0.89790), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=70-val_accuracy=0.8977.ckpt' as top 3
+Epoch 71: 100%|█| 782/782 [06:05<00:00,  2.14it/s, v_num=5, train_loss=0.832, train_acc=0.812, val_loss=0.747, val_accuEpoch 71, global step 56304: 'val_accuracy' reached 0.89720 (best 0.89790), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=71-val_accuracy=0.8972.ckpt' as top 3
+Epoch 72: 100%|█| 782/782 [06:22<00:00,  2.04it/s, v_num=5, train_loss=0.586, train_acc=1.000, val_loss=0.738, val_accuMetric val_accuracy improved by 0.005 >= min_delta = 0.0005. New best score: 0.903                                      
+Epoch 72, global step 57086: 'val_accuracy' reached 0.90290 (best 0.90290), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=72-val_accuracy=0.9029.ckpt' as top 3
+Epoch 73: 100%|█| 782/782 [06:38<00:00,  1.96it/s, v_num=5, train_loss=1.010, train_acc=0.875, val_loss=0.748, val_accuEpoch 73, global step 57868: 'val_accuracy' reached 0.89960 (best 0.90290), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=73-val_accuracy=0.8996.ckpt' as top 3
+Epoch 74: 100%|█| 782/782 [06:49<00:00,  1.91it/s, v_num=5, train_loss=1.210, train_acc=0.750, val_loss=0.729, val_accuMetric val_accuracy improved by 0.001 >= min_delta = 0.0005. New best score: 0.904                                      
+Epoch 74, global step 58650: 'val_accuracy' reached 0.90370 (best 0.90370), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=74-val_accuracy=0.9037.ckpt' as top 3
+Epoch 75: 100%|█| 782/782 [06:59<00:00,  1.87it/s, v_num=5, train_loss=0.699, train_acc=0.875, val_loss=0.729, val_accuMetric val_accuracy improved by 0.002 >= min_delta = 0.0005. New best score: 0.905                                      
+Epoch 75, global step 59432: 'val_accuracy' reached 0.90520 (best 0.90520), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=75-val_accuracy=0.9052.ckpt' as top 3
+Epoch 76: 100%|█| 782/782 [06:50<00:00,  1.91it/s, v_num=5, train_loss=0.668, train_acc=0.938, val_loss=0.733, val_accuEpoch 76, global step 60214: 'val_accuracy' was not in top 3                                                            
+Epoch 77: 100%|█| 782/782 [06:16<00:00,  2.07it/s, v_num=5, train_loss=0.642, train_acc=0.875, val_loss=0.730, val_accuEpoch 77, global step 60996: 'val_accuracy' reached 0.90390 (best 0.90520), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=77-val_accuracy=0.9039.ckpt' as top 3
+Epoch 78: 100%|█| 782/782 [06:48<00:00,  1.92it/s, v_num=5, train_loss=0.835, train_acc=0.812, val_loss=0.727, val_accuMetric val_accuracy improved by 0.001 >= min_delta = 0.0005. New best score: 0.906                                      
+Epoch 78, global step 61778: 'val_accuracy' reached 0.90630 (best 0.90630), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=78-val_accuracy=0.9063.ckpt' as top 3
+Epoch 79: 100%|█| 782/782 [06:37<00:00,  1.97it/s, v_num=5, train_loss=1.050, train_acc=0.750, val_loss=0.719, val_accuMetric val_accuracy improved by 0.002 >= min_delta = 0.0005. New best score: 0.908                                      
+Epoch 79, global step 62560: 'val_accuracy' reached 0.90810 (best 0.90810), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=79-val_accuracy=0.9081.ckpt' as top 3
+Epoch 80: 100%|█| 782/782 [06:43<00:00,  1.94it/s, v_num=5, train_loss=0.583, train_acc=1.000, val_loss=0.718, val_accuEpoch 80, global step 63342: 'val_accuracy' reached 0.90780 (best 0.90810), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=80-val_accuracy=0.9078.ckpt' as top 3
+Epoch 81: 100%|█| 782/782 [06:39<00:00,  1.96it/s, v_num=5, train_loss=0.853, train_acc=0.750, val_loss=0.718, val_accuEpoch 81, global step 64124: 'val_accuracy' reached 0.90690 (best 0.90810), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=81-val_accuracy=0.9069.ckpt' as top 3
+Epoch 82: 100%|█| 782/782 [06:03<00:00,  2.15it/s, v_num=5, train_loss=0.708, train_acc=0.875, val_loss=0.716, val_accuMetric val_accuracy improved by 0.002 >= min_delta = 0.0005. New best score: 0.910                                      
+Epoch 82, global step 64906: 'val_accuracy' reached 0.91050 (best 0.91050), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=82-val_accuracy=0.9105.ckpt' as top 3
+Epoch 83: 100%|█| 782/782 [06:56<00:00,  1.88it/s, v_num=5, train_loss=0.907, train_acc=0.875, val_loss=0.716, val_accuEpoch 83, global step 65688: 'val_accuracy' was not in top 3                                                            
+Epoch 84: 100%|█| 782/782 [06:11<00:00,  2.11it/s, v_num=5, train_loss=0.773, train_acc=0.875, val_loss=0.713, val_accuEpoch 84, global step 66470: 'val_accuracy' reached 0.90910 (best 0.91050), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=84-val_accuracy=0.9091.ckpt' as top 3
+Epoch 85: 100%|█| 782/782 [06:45<00:00,  1.93it/s, v_num=5, train_loss=0.608, train_acc=1.000, val_loss=0.715, val_accuEpoch 85, global step 67252: 'val_accuracy' reached 0.91030 (best 0.91050), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=85-val_accuracy=0.9103.ckpt' as top 3
+Epoch 86: 100%|█| 782/782 [06:16<00:00,  2.07it/s, v_num=5, train_loss=0.633, train_acc=0.938, val_loss=0.712, val_accuMetric val_accuracy improved by 0.001 >= min_delta = 0.0005. New best score: 0.911                                      
+Epoch 86, global step 68034: 'val_accuracy' reached 0.91150 (best 0.91150), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=86-val_accuracy=0.9115.ckpt' as top 3
+Epoch 87: 100%|█| 782/782 [06:13<00:00,  2.09it/s, v_num=5, train_loss=0.891, train_acc=0.875, val_loss=0.713, val_accuEpoch 87, global step 68816: 'val_accuracy' was not in top 3                                                            
+Epoch 88: 100%|█| 782/782 [06:46<00:00,  1.92it/s, v_num=5, train_loss=0.690, train_acc=0.875, val_loss=0.715, val_accuEpoch 88, global step 69598: 'val_accuracy' was not in top 3                                                            
+Epoch 89: 100%|█| 782/782 [06:42<00:00,  1.94it/s, v_num=5, train_loss=0.739, train_acc=0.938, val_loss=0.711, val_accuEpoch 89, global step 70380: 'val_accuracy' reached 0.91040 (best 0.91150), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=89-val_accuracy=0.9104.ckpt' as top 3
+Epoch 90: 100%|█| 782/782 [07:26<00:00,  1.75it/s, v_num=5, train_loss=0.615, train_acc=0.938, val_loss=0.709, val_accuEpoch 90, global step 71162: 'val_accuracy' was not in top 3                                                            
+Epoch 91: 100%|█| 782/782 [06:33<00:00,  1.99it/s, v_num=5, train_loss=0.597, train_acc=0.938, val_loss=0.710, val_accuEpoch 91, global step 71944: 'val_accuracy' was not in top 3                                                            
+Epoch 92: 100%|█| 782/782 [06:06<00:00,  2.13it/s, v_num=5, train_loss=0.675, train_acc=0.938, val_loss=0.706, val_accuEpoch 92, global step 72726: 'val_accuracy' reached 0.91190 (best 0.91190), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=92-val_accuracy=0.9119.ckpt' as top 3
+Epoch 93: 100%|█| 782/782 [06:53<00:00,  1.89it/s, v_num=5, train_loss=0.825, train_acc=0.875, val_loss=0.707, val_accuEpoch 93, global step 73508: 'val_accuracy' reached 0.91140 (best 0.91190), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=93-val_accuracy=0.9114.ckpt' as top 3
+Epoch 94: 100%|█| 782/782 [07:57<00:00,  1.64it/s, v_num=5, train_loss=0.835, train_acc=0.875, val_loss=0.707, val_accuEpoch 94, global step 74290: 'val_accuracy' was not in top 3                                                            
+Epoch 95: 100%|█| 782/782 [07:34<00:00,  1.72it/s, v_num=5, train_loss=0.654, train_acc=0.938, val_loss=0.708, val_accuEpoch 95, global step 75072: 'val_accuracy' was not in top 3                                                            
+Epoch 96: 100%|█| 782/782 [07:35<00:00,  1.72it/s, v_num=5, train_loss=0.608, train_acc=1.000, val_loss=0.706, val_accuEpoch 96, global step 75854: 'val_accuracy' reached 0.91200 (best 0.91200), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=96-val_accuracy=0.9120.ckpt' as top 3
+Epoch 97: 100%|█| 782/782 [07:38<00:00,  1.71it/s, v_num=5, train_loss=0.792, train_acc=0.875, val_loss=0.706, val_accuEpoch 97, global step 76636: 'val_accuracy' reached 0.91190 (best 0.91200), saving model to 'E:\\python_exercises\\zms_cifar10_cnn\\checkpoints\\cifar10-cnn-epoch=97-val_accuracy=0.9119.ckpt' as top 3
+Epoch 98: 100%|█| 782/782 [07:37<00:00,  1.71it/s, v_num=5, train_loss=0.716, train_acc=0.938, val_loss=0.707, val_accuEpoch 98, global step 77418: 'val_accuracy' was not in top 3                                                            
+Epoch 99: 100%|█| 782/782 [07:25<00:00,  1.76it/s, v_num=5, train_loss=0.921, train_acc=0.875, val_loss=0.706, val_accuEpoch 99, global step 78200: 'val_accuracy' was not in top 3                                                            
+`Trainer.fit` stopped: `max_epochs=100` reached.
+Epoch 99: 100%|█| 782/782 [07:25<00:00,  1.76it/s, v_num=5, train_loss=0.921, train_acc=0.875, val_loss=0.706, val_accu
+
+Testing best model...
+Loading best model: E:\python_exercises\zms_cifar10_cnn\checkpoints\cifar10-cnn-epoch=96-val_accuracy=0.9120.ckpt
+E:\python_exercises\zms_cifar10_cnn\.venv\Lib\site-packages\pytorch_lightning\trainer\connectors\data_connector.py:429: Consider setting `persistent_workers=True` in 'test_dataloader' to speed up the dataloader worker initialization.
+Testing DataLoader 0: 100%|██████████████████████████████████████████████████████████| 157/157 [00:11<00:00, 13.46it/s]
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+       Test metric             DataLoader 0
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+      test_accuracy         0.9120000004768372
+        test_loss           0.7059800624847412
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+============================================================
+Final Test Accuracy: 0.9120
+Target not reached, but close to 91.20%
+============================================================
+Model saved to: ./checkpoints\final_model.pth
+
+Training completed!
+
+```

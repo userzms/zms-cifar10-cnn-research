@@ -14,17 +14,17 @@ class CIFAR10DataModule(pl.LightningDataModule):
         self.batch_size = config.batch_size
         self.num_workers = config.num_workers
 
-        # 定义数据增强
+        # 定义数据增强 - 优化增强策略
         if config.train_transform:
             self.train_transform = transforms.Compose([
                 transforms.RandomCrop(32, padding=4),
                 transforms.RandomHorizontalFlip(p=0.5),
                 transforms.RandomRotation(15),
                 transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.1),
-                transforms.RandomGrayscale(p=0.2),  # 新增
+                transforms.RandomGrayscale(p=0.2),
                 transforms.ToTensor(),
                 transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2470, 0.2435, 0.2616)),
-                transforms.RandomErasing(p=0.3, scale=(0.02, 0.1))  # 新增
+                transforms.RandomErasing(p=0.5, scale=(0.02, 0.2), ratio=(0.3, 3.3))  # 修改：增加概率从0.3到0.5，扩大scale范围
             ])
         else:
             self.train_transform = transforms.Compose([
