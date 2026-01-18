@@ -16,7 +16,7 @@ class Config:
     weight_decay = 1e-4
 
     # 训练参数
-    max_epochs = 100
+    max_epochs = 120  # 修改：增加训练轮数从100到120，配合warm restart策略获得更好收敛
     accelerator = "cpu"
     devices = 1
 

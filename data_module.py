@@ -15,6 +15,7 @@ class CIFAR10DataModule(pl.LightningDataModule):
         self.num_workers = config.num_workers
 
         # 定义数据增强 - 优化增强策略
+        # 技术原理：更多样化的数据增强结合Mixup能显著提升模型泛化能力
         if config.train_transform:
             self.train_transform = transforms.Compose([
                 transforms.RandomCrop(32, padding=4),
@@ -22,9 +23,10 @@ class CIFAR10DataModule(pl.LightningDataModule):
                 transforms.RandomRotation(15),
                 transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.1),
                 transforms.RandomGrayscale(p=0.2),
+                transforms.RandomAffine(degrees=0, translate=(0.1, 0.1)),  # 新增：随机平移
                 transforms.ToTensor(),
                 transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2470, 0.2435, 0.2616)),
-                transforms.RandomErasing(p=0.5, scale=(0.02, 0.2), ratio=(0.3, 3.3))  # 修改：增加概率从0.3到0.5，扩大scale范围
+                transforms.RandomErasing(p=0.5, scale=(0.02, 0.2), ratio=(0.3, 3.3))  # 保持随机擦除
             ])
         else:
             self.train_transform = transforms.Compose([

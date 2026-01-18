@@ -989,3 +989,14 @@ Model saved to: ./checkpoints\final_model.pth
 Training completed!
 
 ```
+
+## 实验6：再次调整后的完整测试
+- 时间：2026年1月18日
+- 配置：batch_size=64, max_epochs=120
+- 结果：测试准确率 90.40%
+- 优化内容：
+  - 通道数从 96→192→384→512 增加到 128→256→512→768，通过更多的通道数提供更大的模型容量，能够学习更复杂的特征表示，配合正则化防止过拟合
+  - model.py新增ResidualBlock类，并添加res1, res2层，ResNet风格的跳跃连接解决了深层网络的梯度消失问题，允许训练更深的网络而不损失性能
+  - 从OneCycleLR改为CosineAnnealingWarmRestarts，通过周期性重启学习率帮助模型跳出局部最优，配合120个epoch的训练周期
+  - Dropout率从0.4/0.3增加到0.5/0.4，更强的dropout防止过拟合，配合更大的模型容量
+  - 新增transforms.RandomAffine(translate=(0.1, 0.1))，随机平移增强模型对位置变化的鲁棒性

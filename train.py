@@ -54,12 +54,14 @@ def train():
         verbose=True
     )
 
+    # ============ 修改：调整早停参数，给模型更多改进机会 ============
+    # 技术原理：增加patience和降低min_delta，允许模型在更长训练周期内缓慢改进
     early_stop_callback = EarlyStopping(
         monitor='val_accuracy',
-        patience=30,
+        patience=40,  # 修改：从30增加到40，给warm restart策略更多时间
         mode='max',
         verbose=True,
-        min_delta=0.0005
+        min_delta=0.0003  # 修改：从0.0005降低到0.0003，检测更小的改进
     )
 
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
