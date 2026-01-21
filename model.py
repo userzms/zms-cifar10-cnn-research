@@ -1,21 +1,16 @@
-"""
-CNN模型定义 - 进一步优化版本，目标达到93%+准确率
-优化策略：降低Mixup激进度、增加模型深度、延长训练时间、优化学习率调度
-"""
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import pytorch_lightning as pl
 from torchmetrics import Accuracy
-from torch.optim import AdamW
-from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, ReduceLROnPlateau
+from torch.optim import SGD
+from torch.optim.lr_scheduler import MultiStepLR
 from config import config
 
 
-# ============ CBAM注意力模块 ============
+# CBAM注意力模块
 class CBAM(nn.Module):
     """Convolutional Block Attention Module - 通道和空间注意力机制"""
-
     def __init__(self, channels, reduction_ratio=16):
         super().__init__()
 
@@ -51,10 +46,9 @@ class CBAM(nn.Module):
         return x * spatial_attention
 
 
-# ============ 残差连接块 ============
+# 残差连接块
 class ResidualBlock(nn.Module):
     """残差块 - 添加跳跃连接以改善梯度流动"""
-
     def __init__(self, in_channels, out_channels, stride=1):
         super().__init__()
         self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1, stride=stride, bias=False)
@@ -79,92 +73,66 @@ class ResidualBlock(nn.Module):
         return out
 
 
-# ============ SE注意力模块 ============
-class SEBlock(nn.Module):
-    """Squeeze-and-Excitation Block - 通道注意力机制"""
-
-    def __init__(self, channels, reduction_ratio=16):
-        super().__init__()
-        self.fc1 = nn.Linear(channels, channels // reduction_ratio, bias=False)
-        self.fc2 = nn.Linear(channels // reduction_ratio, channels, bias=False)
-        self.sigmoid = nn.Sigmoid()
-
-    def forward(self, x):
-        b, c, _, _ = x.size()
-        y = F.adaptive_avg_pool2d(x, 1).view(b, c)
-        y = F.relu(self.fc1(y))
-        y = self.sigmoid(self.fc2(y)).view(b, c, 1, 1)
-        return x * y.expand_as(x)
-
-
 class CIFAR10CNN(pl.LightningModule):
-    """为CIFAR10设计的优化CNN模型，目标达到93%+准确率"""
-
     def __init__(self):
         super().__init__()
         self.save_hyperparameters()
 
-        # ============ 修改：进一步增加模型深度和容量 ============
-        # 技术原理：更深的网络提供更强的表达能力，配合残差连接解决梯度消失问题
+        # 进一步增加模型容量
+        # 技术原理：更大的通道数提供更强的表达能力，配合SGD优化器获得更好的收敛
         # 第一阶段卷积
-        self.conv1 = nn.Conv2d(3, 128, kernel_size=3, padding=1, bias=False)
-        self.bn1 = nn.BatchNorm2d(128)
-        self.cbam1 = CBAM(128)
+        self.conv1 = nn.Conv2d(3, 160, kernel_size=3, padding=1, bias=False)  # 从128增加到160
+        self.bn1 = nn.BatchNorm2d(160)
+        self.cbam1 = CBAM(160)
 
         # 第二阶段卷积
-        self.conv2 = nn.Conv2d(128, 256, kernel_size=3, padding=1, bias=False)
-        self.bn2 = nn.BatchNorm2d(256)
-        self.cbam2 = CBAM(256)
+        self.conv2 = nn.Conv2d(160, 320, kernel_size=3, padding=1, bias=False)  # 从256增加到320
+        self.bn2 = nn.BatchNorm2d(320)
+        self.cbam2 = CBAM(320)
 
         # 第三阶段卷积
-        self.conv3 = nn.Conv2d(256, 512, kernel_size=3, padding=1, bias=False)
-        self.bn3 = nn.BatchNorm2d(512)
-        self.cbam3 = CBAM(512)
+        self.conv3 = nn.Conv2d(320, 640, kernel_size=3, padding=1, bias=False)  # 从512增加到640
+        self.bn3 = nn.BatchNorm2d(640)
+        self.cbam3 = CBAM(640)
 
         # 第四阶段卷积
-        self.conv4 = nn.Conv2d(512, 768, kernel_size=3, padding=1, bias=False)
-        self.bn4 = nn.BatchNorm2d(768)
-        self.cbam4 = CBAM(768)
+        self.conv4 = nn.Conv2d(640, 960, kernel_size=3, padding=1, bias=False)  # 从768增加到960
+        self.bn4 = nn.BatchNorm2d(960)
+        self.cbam4 = CBAM(960)
 
-        # ============ 修改：在深层添加更多残差连接以改善训练稳定性 ============
-        self.res1 = ResidualBlock(512, 512)
-        self.res2 = ResidualBlock(512, 512)  # 新增：第二个512通道的残差块
-        self.res3 = ResidualBlock(768, 768)
-        self.res4 = ResidualBlock(768, 768)  # 新增：第二个768通道的残差块
+        # 残差连接
+        self.res1 = ResidualBlock(640, 640)
+        self.res2 = ResidualBlock(640, 640)
+        self.res3 = ResidualBlock(960, 960)
+        self.res4 = ResidualBlock(960, 960)
 
         # 全局平均池化
         self.gap = nn.AdaptiveAvgPool2d(1)
 
-        # ============ 修改：增加全连接层容量和深度 ============
-        self.fc1 = nn.Linear(768, 512)
-        self.dropout1 = nn.Dropout(0.5)
-        self.fc2 = nn.Linear(512, 384)  # 修改：从256增加到384
-        self.dropout2 = nn.Dropout(0.4)
-        self.fc3 = nn.Linear(384, 256)  # 新增：额外的全连接层
-        self.dropout3 = nn.Dropout(0.3)  # 新增：额外的dropout
-        self.fc4 = nn.Linear(256, config.num_classes)
+        # 增加全连接层容量
+        self.fc1 = nn.Linear(960, 640)  # 从768->512 改为 960->640
+        self.dropout1 = nn.Dropout(0.4)  # 从0.5降低到0.4
+        self.fc2 = nn.Linear(640, 512)  # 从512->384 改为 640->512
+        self.dropout2 = nn.Dropout(0.3)
+        self.fc3 = nn.Linear(512, 320)  # 从384->256 改为 512->320
+        self.dropout3 = nn.Dropout(0.2)
+        self.fc4 = nn.Linear(320, config.num_classes)
 
-        # ============ 修改：增强标签平滑 ============
-        # 技术原理：增加标签平滑强度可以进一步提升泛化能力，减少过拟合
-        self.criterion = nn.CrossEntropyLoss(label_smoothing=0.15)  # 从0.1增加到0.15
+
+        # 使用0.1的标签平滑，配合更强的正则化（SGD+Momentum）
+        self.criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
 
         # 准确率跟踪
         self.train_acc = Accuracy(task="multiclass", num_classes=config.num_classes)
         self.val_acc = Accuracy(task="multiclass", num_classes=config.num_classes)
         self.test_acc = Accuracy(task="multiclass", num_classes=config.num_classes)
 
-        # ============ 修改：降低Mixup激进度 ============
-        # 技术原理：降低Mixup概率可以提升训练准确率，减少欠拟合问题
-        self.mixup_alpha = 0.2  # 保持不变
-        self.mixup_prob = 0.3  # 修改：从0.5降低到0.3，减少Mixup使用频率
+
+        self.use_mixup = False
+        self.mixup_alpha = 0.2
+        self.mixup_prob = 0.05
 
     def mixup_data(self, x, y):
-        """
-        实现Mixup数据增强技术
-        技术原理：通过线性组合两个样本及其标签创建新的训练样本，提升模型泛化能力
-        x: 输入图像
-        y: 标签
-        """
         if self.mixup_alpha > 0:
             lam = torch.distributions.Beta(self.mixup_alpha, self.mixup_alpha).sample().to(x.device)
         else:
@@ -178,7 +146,7 @@ class CIFAR10CNN(pl.LightningModule):
         return mixed_x, y_a, y_b, lam
 
     def mixup_criterion(self, criterion, pred, y_a, y_b, lam):
-        """Mixup损失函数：混合两个标签的损失"""
+        """Mixup损失函数"""
         return lam * criterion(pred, y_a) + (1 - lam) * criterion(pred, y_b)
 
     def forward(self, x):
@@ -192,30 +160,30 @@ class CIFAR10CNN(pl.LightningModule):
         x = self.cbam2(x)
         x = F.max_pool2d(x, 2)
 
-        # 第三组卷积 + CBAM + 多个残差连接
+        # 第三组卷积 + CBAM + 残差连接
         x = F.relu(self.bn3(self.conv3(x)))
         x = self.cbam3(x)
         x = F.max_pool2d(x, 2)
         x = self.res1(x)
-        x = self.res2(x)  # 新增：第二个残差块
+        x = self.res2(x)
 
-        # 第四组卷积 + CBAM + 多个残差连接
+        # 第四组卷积 + CBAM + 残差连接
         x = F.relu(self.bn4(self.conv4(x)))
         x = self.cbam4(x)
         x = self.res3(x)
-        x = self.res4(x)  # 新增：第二个残差块
+        x = self.res4(x)
 
         # 全局平均池化
         x = self.gap(x)
         x = x.view(x.size(0), -1)
 
-        # 全连接层 - 增加深度
+        # 全连接层
         x = F.relu(self.fc1(x))
         x = self.dropout1(x)
         x = F.relu(self.fc2(x))
         x = self.dropout2(x)
-        x = F.relu(self.fc3(x))  # 新增：额外的全连接层
-        x = self.dropout3(x)  # 新增：额外的dropout
+        x = F.relu(self.fc3(x))
+        x = self.dropout3(x)
         x = self.fc4(x)
 
         return x
@@ -223,14 +191,11 @@ class CIFAR10CNN(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x, y = batch
 
-        # ============ 修改：降低Mixup概率以提升训练准确率 ============
-        # 技术原理：从50%降低到30%，减少Mixup的过度使用，提升训练准确率
-        if torch.rand(1).item() < self.mixup_prob:  # 使用mixup_prob变量
+        if self.use_mixup and torch.rand(1).item() < self.mixup_prob:
             mixed_x, y_a, y_b, lam = self.mixup_data(x, y)
             logits = self(mixed_x)
             loss = self.mixup_criterion(self.criterion, logits, y_a, y_b, lam)
 
-            # 对于Mixup，准确率计算使用混合标签中概率较高的一个
             preds = torch.argmax(logits, dim=1)
             self.train_acc(preds, y_a if lam > 0.5 else y_b)
         else:
@@ -271,23 +236,23 @@ class CIFAR10CNN(pl.LightningModule):
         return loss
 
     def configure_optimizers(self) -> dict:
-        # ============ 修改：使用更温和的学习率策略 ============
-        # 技术原理：降低初始学习率，配合更长的训练时间（200 epochs）获得更稳定的收敛
-        optimizer = AdamW(
+        # 使用SGD+Momentum优化器
+        # 技术原理：SGD+Momentum在CIFAR10上通常比AdamW表现更好，能获得更好的泛化性能
+        optimizer = SGD(
             self.parameters(),
-            lr=0.001,  # 修改：从0.002降低到0.001，更温和的学习率
-            weight_decay=config.weight_decay,
-            betas=(0.9, 0.999),
-            amsgrad=True
+            lr=0.1,  # 从0.001增加到0.1，SGD需要更大的初始学习率
+            momentum=0.9,  # SGD的标准momentum值
+            weight_decay=5e-4,  # 从1e-4增加到5e-4，配合SGD使用更强的L2正则化
+            nesterov=True  # 使用Nesterov momentum，能获得更好的收敛效果
         )
 
-        # ============ 修改：调整warm restart参数以适应更长的训练 ============
-        # 技术原理：增加T_0到50，配合200 epochs的训练，给模型更多时间探索
-        scheduler = CosineAnnealingWarmRestarts(
+        # 使用MultiStepLR学习率调度
+        # 技术原理：MultiStepLR在CIFAR10上被广泛使用，在特定epoch降低学习率
+        # 是ImageNet和CIFAR10的经典学习率策略
+        scheduler = MultiStepLR(
             optimizer,
-            T_0=50,  # 修改：从40增加到50，适应200 epochs的训练
-            T_mult=2,  # 周期倍增因子
-            eta_min=1e-7  # 修改：从1e-6降低到1e-7，更精细的学习率调整
+            milestones=[100, 150, 180],  # 在第100、150、180个epoch降低学习率
+            gamma=0.1  # 每次学习率降低为原来的1/10
         )
 
         return {

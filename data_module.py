@@ -1,11 +1,8 @@
-"""
-CIFAR10数据加载模块 - GPU优化版本
-"""
+# CIFAR10数据加载模块
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 from config import config
-
 
 class CIFAR10DataModule(pl.LightningDataModule):
     def __init__(self):
@@ -65,9 +62,6 @@ class CIFAR10DataModule(pl.LightningDataModule):
                 transform=self.test_transform
             )
 
-    # ============ 修改：优化DataLoader配置以充分利用GPU ============
-    # 技术原理：persistent_workers保持worker进程存活，减少epoch间worker初始化开销
-    # prefetch_factor控制每个worker预取的batch数量，加速数据传输到GPU
     def train_dataloader(self):
         return DataLoader(
             self.train_dataset,
@@ -75,8 +69,8 @@ class CIFAR10DataModule(pl.LightningDataModule):
             shuffle=True,
             num_workers=self.num_workers,
             pin_memory=True,  # 加速CPU到GPU的数据传输
-            persistent_workers=True,  # 新增：保持worker进程存活，减少初始化开销
-            prefetch_factor=2  # 新增：每个worker预取2个batch，加速数据加载
+            persistent_workers=True,  # 保持worker进程存活，减少初始化开销
+            prefetch_factor=2  # 每个worker预取2个batch，加速数据加载
         )
 
     def val_dataloader(self):
@@ -86,8 +80,8 @@ class CIFAR10DataModule(pl.LightningDataModule):
             shuffle=False,
             num_workers=self.num_workers,
             pin_memory=True,
-            persistent_workers=True,  # 新增：保持worker进程存活
-            prefetch_factor=2  # 新增：每个worker预取2个batch
+            persistent_workers=True,
+            prefetch_factor=2
         )
 
     def test_dataloader(self):
@@ -97,6 +91,6 @@ class CIFAR10DataModule(pl.LightningDataModule):
             shuffle=False,
             num_workers=self.num_workers,
             pin_memory=True,
-            persistent_workers=True,  # 新增：保持worker进程存活
-            prefetch_factor=2  # 新增：每个worker预取2个batch
+            persistent_workers=True,
+            prefetch_factor=2
         )

@@ -1095,3 +1095,50 @@ Training completed!
 
 (cifar10_env) zhang-ming-shan@ubuntu:~/projects/zms_cifar10_cnn$
 ```
+
+## 实验9：GPU训练最终版
+- 时间：2026年1月21日
+- 配置：batch_size=128, max_epochs=200
+- 结果：测试准确率 93.60%
+- 命令行输出：
+```bash
+Epoch 198, global step 39004: 'val_accuracy' was not in top 3
+Epoch 199: 100%|█| 196/196 [00:19<00:00, 10.11it/s, v_num=2, train_loss=0.675, train_acc=0.925, val_loss=0.668, val_accuracy=0.936, learning_rate=0.
+Epoch 199, global step 39200: 'val_accuracy' was not in top 3
+`Trainer.fit` stopped: `max_epochs=200` reached.
+Epoch 199: 100%|█| 196/196 [00:20<00:00,  9.36it/s, v_num=2, train_loss=0.675, train_acc=0.925, val_loss=0.668, val_accuracy=0.936, learning_rate=0.
+
+Testing best model...
+Loading best model: /home/zhang-ming-shan/projects/zms_cifar10_cnn/checkpoints/cifar10-cnn-epoch=171-val_accuracy=0.9360.ckpt
+
+Testing best model...
+Loading best model: /home/zhang-ming-shan/projects/zms_cifar10_cnn/checkpoints/cifar10-cnn-epoch=171-val_accuracy=0.9360.ckpt
+Files already downloaded and verified
+Files already downloaded and verified
+LOCAL_RANK: 1 - CUDA_VISIBLE_DEVICES: [5,7]
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [5,7]
+/home/zhang-ming-shan/miniconda3/envs/cifar10_env/lib/python3.8/site-packages/pytorch_lightning/trainer/connectors/data_connector.py:215: Using `DistributedSampler` with the dataloaders. During `trainer.test()`, it is recommended to use `Trainer(devices=1, num_nodes=1)` to ensure each sample/batch gets evaluated exactly once. Otherwise, multi-device settings use `DistributedSampler` that replicates some samples to make sure all devices have same batch size in case of uneven inputs.
+Testing DataLoader 0: 100%|█████████████████████████████████████████████████████████████████████████████████████████| 40/40 [00:01<00:00, 33.19it/s]
+/home/zhang-ming-shan/miniconda3/envs/cifar10_env/lib/python3.8/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:431: It is recommended to use `self.log('test_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
+Testing DataLoader 0: 100%|█████████████████████████████████████████████████████████████████████████████████████████| 40/40 [00:01<00:00, 33.03it/s]
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+       Test metric             DataLoader 0
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+      test_accuracy         0.9359999895095825
+        test_loss           0.6644408702850342
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+============================================================
+Final Test Accuracy: 0.9360 (93.60%)
+SUCCESS: Achieved target accuracy (≥93%)!
+============================================================
+============================================================
+Final Test Accuracy: 0.9360 (93.60%)
+SUCCESS: Achieved target accuracy (≥93%)!
+============================================================
+Model saved to: ./checkpoints/final_model.pth
+
+Training completed!
+Model saved to: ./checkpoints/final_model.pth
+
+Training completed!
+```

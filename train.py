@@ -1,6 +1,4 @@
-"""
-主训练脚本 - GPU优化版本
-"""
+# 主训练脚本 - GPU优化版本
 import os
 import torch
 import pytorch_lightning as pl
@@ -11,15 +9,13 @@ from model import CIFAR10CNN
 from data_module import CIFAR10DataModule
 from config import config
 
-
+# 训练主函数
 def train():
-    """训练主函数 - GPU优化版本"""
     print("=" * 60)
     print("CIFAR10 CNN Training - Target: 93%+ Accuracy (GPU)")
     print("=" * 60)
 
-    # ============ 修改：增强GPU检测和信息输出 ============
-    # 技术原理：显示GPU详细信息，确保正确使用GPU资源
+    # 显示GPU详细信息，确保正确使用GPU资源
     if torch.cuda.is_available():
         print(f"\nGPU Available!")
         print(f"GPU Count: {torch.cuda.device_count()}")
@@ -59,14 +55,12 @@ def train():
         verbose=True
     )
 
-    # ============ 修改：进一步优化早停参数以适应更长的训练 ============
-    # 技术原理：训练轮数从150增加到200，相应增加patience从50到60，给warm restart策略充分时间
     early_stop_callback = EarlyStopping(
         monitor='val_accuracy',
-        patience=60,  # 修改：从50增加到60，配合200 epochs的训练，给warm restart策略更充分的时间
+        patience=80,  # SGD+Momentum收敛较慢（需更多epoch找到最优解）
         mode='max',
         verbose=True,
-        min_delta=0.0002  # 保持0.0002，更敏感地检测小的改进
+        min_delta=0.0005  # 降低敏感度，避免过早停止
     )
 
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
@@ -77,9 +71,7 @@ def train():
         name='cifar10_cnn'
     )
 
-    # ============ 修改：优化Trainer配置以充分利用GPU ============
-    # 技术原理：设置deterministic=False以允许GPU使用不确定性优化算法提升性能
-    # 使用accumulate_grad_batches如果需要更大的有效batch size
+    # deterministic=False允许GPU使用不确定性优化算法提升性能
     trainer = pl.Trainer(
         max_epochs=config.max_epochs,
         accelerator=config.accelerator,
@@ -87,12 +79,13 @@ def train():
         logger=logger,
         callbacks=[checkpoint_callback, early_stop_callback, lr_monitor],
         log_every_n_steps=50,
-        deterministic=False,  # 修改：从True改为False，允许GPU使用不确定性优化算法提升性能
+        # deterministic（确定性）控制计算结果是否严格可复现
+        # deterministic=False（默认值）：允许框架使用GPU的“非确定性优化”，牺牲部分可复现性以换取性能提升。
+        deterministic=False,  # 允许GPU使用不确定性优化算法提升性能
         enable_progress_bar=True,
         enable_model_summary=True,
-        precision=32,  # 使用32位精度，如果GPU支持可以改为16使用混合精度训练
-        gradient_clip_val=1.0,  # 新增：梯度裁剪，防止梯度爆炸，提升训练稳定性
-        accumulate_grad_batches=1  # 新增：梯度累积，如果需要可以增加到2或4获得更大有效batch size
+        precision=32,
+        accumulate_grad_batches=1  # 梯度累积
     )
 
     # 开始训练
@@ -132,7 +125,7 @@ def train():
 
 
 def quick_test():
-    """快速测试函数，验证代码是否可运行"""
+    # 快速测试函数，验证代码是否可运行
     print("\nRunning quick test...")
 
     # 测试数据加载
