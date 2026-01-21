@@ -240,22 +240,24 @@ class CIFAR10CNN(pl.LightningModule):
 
         return loss
 
-    def configure_optimizers(self):
-        # ============ 修改：使用更优化的学习率调度策略 ============
-        # 技术原理：CosineAnnealingWarmRestarts通过周期性重启学习率，帮助模型跳出局部最优
+    def configure_optimizers(self) -> dict:
+        # ============ 修改：GPU优化的学习率调度策略 ============
+        # 技术原理：更大的batch size需要相应调整学习率，通常遵循线性缩放原则
+        # batch size从64增加到128（2倍），学习率相应调整
+        # CosineAnnealingWarmRestarts通过周期性重启学习率，帮助模型跳出局部最优
         optimizer = AdamW(
             self.parameters(),
-            lr=0.001,  # 降低初始学习率，配合warm restart策略
+            lr=0.002,  # 修改：从0.001增加到0.002，配合batch size增加（线性缩放：0.001 * 128/64）
             weight_decay=config.weight_decay,
-            betas=(0.9, 0.999)
+            betas=(0.9, 0.999),
+            amsgrad=True  # 新增：使用AMSGrad变体，提升GPU训练稳定性
         )
 
-        # 使用CosineAnnealingWarmRestarts替代OneCycleLR
-        # T_0=30: 第一个周期30个epoch
-        # T_mult=2: 每次重启后周期长度翻倍
+        # 使用CosineAnnealingWarmRestarts优化GPU训练
+        # 调整参数以适应150 epochs的训练
         scheduler = CosineAnnealingWarmRestarts(
             optimizer,
-            T_0=30,  # 第一个重启周期（epoch数）
+            T_0=40,  # 修改：从30增加到40，第一个重启周期40个epoch，适应更长训练
             T_mult=2,  # 周期倍增因子
             eta_min=1e-6  # 最小学习率
         )

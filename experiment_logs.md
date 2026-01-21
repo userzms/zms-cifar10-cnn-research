@@ -1000,3 +1000,50 @@ Training completed!
   - 从OneCycleLR改为CosineAnnealingWarmRestarts，通过周期性重启学习率帮助模型跳出局部最优，配合120个epoch的训练周期
   - Dropout率从0.4/0.3增加到0.5/0.4，更强的dropout防止过拟合，配合更大的模型容量
   - 新增transforms.RandomAffine(translate=(0.1, 0.1))，随机平移增强模型对位置变化的鲁棒性
+
+## 实验4：微调后完整测试
+- 时间：2026年1月21日
+- 配置：batch_size=128, max_epochs=150
+- 结果：测试准确率 91.48%
+- 命令行输出：
+```bash
+Epoch 148, global step 29204: 'val_accuracy' was not in top 3
+Epoch 149: 100%|█| 196/196 [00:12<00:00, 16.19it/s, v_num=0, train_loss=0.903, train_acc=0.825, val_loss=0.745, val_accuracy=0.901, learning_rate=0.
+Epoch 149, global step 29400: 'val_accuracy' was not in top 3
+`Trainer.fit` stopped: `max_epochs=150` reached.
+Epoch 149: 100%|█| 196/196 [00:13<00:00, 14.95it/s, v_num=0, train_loss=0.903, train_acc=0.825, val_loss=0.745, val_accuracy=0.901, learning_rate=0.
+
+Testing best model...
+Loading best model: /home/zhang-ming-shan/projects/zms_cifar10_cnn/checkpoints/cifar10-cnn-epoch=110-val_accuracy=0.9148.ckpt
+
+Testing best model...
+Loading best model: /home/zhang-ming-shan/projects/zms_cifar10_cnn/checkpoints/cifar10-cnn-epoch=110-val_accuracy=0.9148.ckpt
+Files already downloaded and verified
+Files already downloaded and verified
+LOCAL_RANK: 1 - CUDA_VISIBLE_DEVICES: [5,7]
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [5,7]
+/home/zhang-ming-shan/miniconda3/envs/cifar10_env/lib/python3.8/site-packages/pytorch_lightning/trainer/connectors/data_connector.py:215: Using `DistributedSampler` with the dataloaders. During `trainer.test()`, it is recommended to use `Trainer(devices=1, num_nodes=1)` to ensure each sample/batch gets evaluated exactly once. Otherwise, multi-device settings use `DistributedSampler` that replicates some samples to make sure all devices have same batch size in case of uneven inputs.
+Testing DataLoader 0: 100%|█████████████████████████████████████████████████████████████████████████████████████████| 40/40 [00:00<00:00, 52.79it/s]
+/home/zhang-ming-shan/miniconda3/envs/cifar10_env/lib/python3.8/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:431: It is recommended to use `self.log('test_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
+Testing DataLoader 0: 100%|█████████████████████████████████████████████████████████████████████████████████████████| 40/40 [00:00<00:00, 52.41it/s]
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+       Test metric             DataLoader 0
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+      test_accuracy         0.9147999882698059
+        test_loss           0.7146289348602295
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+============================================================
+Final Test Accuracy: 0.9148 (91.48%)
+Target not reached, accuracy is 91.48%
+============================================================
+============================================================
+Final Test Accuracy: 0.9148 (91.48%)
+Target not reached, accuracy is 91.48%
+============================================================
+Model saved to: ./checkpoints/final_model.pth
+
+Training completed!
+Model saved to: ./checkpoints/final_model.pth
+
+Training completed!
+```

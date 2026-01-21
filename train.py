@@ -1,5 +1,5 @@
 """
-主训练脚本
+主训练脚本 - GPU优化版本
 """
 import os
 import torch
@@ -13,16 +13,21 @@ from config import config
 
 
 def train():
-    """训练主函数"""
+    """训练主函数 - GPU优化版本"""
     print("=" * 60)
-    print("CIFAR10 CNN Training - Target: 93%+ Accuracy")
+    print("CIFAR10 CNN Training - Target: 93%+ Accuracy (GPU)")
     print("=" * 60)
 
-    # 检查GPU
+    # ============ 修改：增强GPU检测和信息输出 ============
+    # 技术原理：显示GPU详细信息，确保正确使用GPU资源
     if torch.cuda.is_available():
-        print(f"GPU Available: {torch.cuda.get_device_name(0)}")
+        print(f"\nGPU Available!")
+        print(f"GPU Count: {torch.cuda.device_count()}")
+        print(f"Current GPU: {torch.cuda.get_device_name(0)}")
+        print(f"GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.2f} GB")
     else:
-        print("GPU Not Available, using CPU")
+        print("\nWARNING: GPU Not Available, falling back to CPU")
+        print("Please check your GPU setup!")
 
     # 创建必要的目录
     os.makedirs(config.log_dir, exist_ok=True)
@@ -54,14 +59,14 @@ def train():
         verbose=True
     )
 
-    # ============ 修改：调整早停参数，给模型更多改进机会 ============
-    # 技术原理：增加patience和降低min_delta，允许模型在更长训练周期内缓慢改进
+    # ============ 修改：优化早停参数以适应GPU训练 ============
+    # 技术原理：GPU训练更快，增加patience给warm restart策略充分时间，同时降低min_delta检测更小的改进
     early_stop_callback = EarlyStopping(
         monitor='val_accuracy',
-        patience=40,  # 修改：从30增加到40，给warm restart策略更多时间
+        patience=50,  # 修改：从40增加到50，GPU训练更快，给warm restart更多时间
         mode='max',
         verbose=True,
-        min_delta=0.0003  # 修改：从0.0005降低到0.0003，检测更小的改进
+        min_delta=0.0002  # 修改：从0.0003降低到0.0002，更敏感地检测改进
     )
 
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
@@ -72,7 +77,9 @@ def train():
         name='cifar10_cnn'
     )
 
-    # 初始化训练器
+    # ============ 修改：优化Trainer配置以充分利用GPU ============
+    # 技术原理：设置deterministic=False以允许GPU使用不确定性优化算法提升性能
+    # 使用accumulate_grad_batches如果需要更大的有效batch size
     trainer = pl.Trainer(
         max_epochs=config.max_epochs,
         accelerator=config.accelerator,
@@ -80,15 +87,19 @@ def train():
         logger=logger,
         callbacks=[checkpoint_callback, early_stop_callback, lr_monitor],
         log_every_n_steps=50,
-        deterministic=True,
+        deterministic=False,  # 修改：从True改为False，允许GPU使用不确定性优化算法提升性能
         enable_progress_bar=True,
         enable_model_summary=True,
-        precision= 32
+        precision=32,  # 使用32位精度，如果GPU支持可以改为16使用混合精度训练
+        gradient_clip_val=1.0,  # 新增：梯度裁剪，防止梯度爆炸，提升训练稳定性
+        accumulate_grad_batches=1  # 新增：梯度累积，如果需要可以增加到2或4获得更大有效batch size
     )
 
     # 开始训练
     print("\nStarting training...")
     print(f"Max Epochs: {config.max_epochs}")
+    print(f"Batch Size: {config.batch_size}")
+    print(f"Accelerator: {config.accelerator}")
     print(f"Target Accuracy: 93%+")
     print("=" * 60)
 
@@ -106,11 +117,11 @@ def train():
         test_accuracy = test_results[0]['test_accuracy']
 
         print("=" * 60)
-        print(f"Final Test Accuracy: {test_accuracy:.4f}")
+        print(f"Final Test Accuracy: {test_accuracy:.4f} ({test_accuracy * 100:.2f}%)")
         if test_accuracy >= 0.93:
             print(f"SUCCESS: Achieved target accuracy (≥93%)!")
         else:
-            print(f"Target not reached, but close to {test_accuracy * 100:.2f}%")
+            print(f"Target not reached, accuracy is {test_accuracy * 100:.2f}%")
         print("=" * 60)
 
         # 保存最终模型
