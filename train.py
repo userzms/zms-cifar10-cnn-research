@@ -59,14 +59,14 @@ def train():
         verbose=True
     )
 
-    # ============ 修改：优化早停参数以适应GPU训练 ============
-    # 技术原理：GPU训练更快，增加patience给warm restart策略充分时间，同时降低min_delta检测更小的改进
+    # ============ 修改：进一步优化早停参数以适应更长的训练 ============
+    # 技术原理：训练轮数从150增加到200，相应增加patience从50到60，给warm restart策略充分时间
     early_stop_callback = EarlyStopping(
         monitor='val_accuracy',
-        patience=50,  # 修改：从40增加到50，GPU训练更快，给warm restart更多时间
+        patience=60,  # 修改：从50增加到60，配合200 epochs的训练，给warm restart策略更充分的时间
         mode='max',
         verbose=True,
-        min_delta=0.0002  # 修改：从0.0003降低到0.0002，更敏感地检测改进
+        min_delta=0.0002  # 保持0.0002，更敏感地检测小的改进
     )
 
     lr_monitor = LearningRateMonitor(logging_interval='epoch')

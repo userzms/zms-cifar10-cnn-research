@@ -1001,7 +1001,7 @@ Training completed!
   - Dropout率从0.4/0.3增加到0.5/0.4，更强的dropout防止过拟合，配合更大的模型容量
   - 新增transforms.RandomAffine(translate=(0.1, 0.1))，随机平移增强模型对位置变化的鲁棒性
 
-## 实验4：微调后完整测试
+## 实验7：微调后完整测试
 - 时间：2026年1月21日
 - 配置：batch_size=128, max_epochs=150
 - 结果：测试准确率 91.48%
@@ -1046,4 +1046,52 @@ Training completed!
 Model saved to: ./checkpoints/final_model.pth
 
 Training completed!
+```
+
+## 实验8：GPU第二版测试
+- 时间：2026年1月21日
+- 配置：batch_size=128, max_epochs=200
+- 结果：测试准确率 92.00%
+- 命令行输出：
+```bash
+[rank: 0] Monitored metric val_accuracy did not improve in the last 60 records. Best score: 0.920. Signaling Trainer to stop.
+[rank: 1] Monitored metric val_accuracy did not improve in the last 60 records. Best score: 0.920. Signaling Trainer to stop.
+Epoch 199, global step 39200: 'val_accuracy' was not in top 3
+`Trainer.fit` stopped: `max_epochs=200` reached.
+Epoch 199: 100%|█| 196/196 [00:17<00:00, 11.39it/s, v_num=1, train_loss=0.916, train_acc=0.825, val_loss=0.911, val_accuracy=0.908, learning_rate=0.
+
+Testing best model...
+Loading best model: /home/zhang-ming-shan/projects/zms_cifar10_cnn/checkpoints/cifar10-cnn-epoch=139-val_accuracy=0.9200.ckpt
+
+Testing best model...
+Loading best model: /home/zhang-ming-shan/projects/zms_cifar10_cnn/checkpoints/cifar10-cnn-epoch=139-val_accuracy=0.9200.ckpt
+Files already downloaded and verified
+Files already downloaded and verified
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [5,7]
+LOCAL_RANK: 1 - CUDA_VISIBLE_DEVICES: [5,7]
+/home/zhang-ming-shan/miniconda3/envs/cifar10_env/lib/python3.8/site-packages/pytorch_lightning/trainer/connectors/data_connector.py:215: Using `DistributedSampler` with the dataloaders. During `trainer.test()`, it is recommended to use `Trainer(devices=1, num_nodes=1)` to ensure each sample/batch gets evaluated exactly once. Otherwise, multi-device settings use `DistributedSampler` that replicates some samples to make sure all devices have same batch size in case of uneven inputs.
+Testing DataLoader 0: 100%|█████████████████████████████████████████████████████████████████████████████████████████| 40/40 [00:00<00:00, 42.89it/s]
+/home/zhang-ming-shan/miniconda3/envs/cifar10_env/lib/python3.8/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:431: It is recommended to use `self.log('test_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
+Testing DataLoader 0: 100%|█████████████████████████████████████████████████████████████████████████████████████████| 40/40 [00:01<00:00, 38.67it/s]
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+       Test metric             DataLoader 0
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+      test_accuracy         0.9200000166893005
+        test_loss           0.8796584010124207
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+============================================================
+Final Test Accuracy: 0.9200 (92.00%)
+Target not reached, accuracy is 92.00%
+============================================================
+============================================================
+Final Test Accuracy: 0.9200 (92.00%)
+Target not reached, accuracy is 92.00%
+============================================================
+Model saved to: ./checkpoints/final_model.pth
+
+Training completed!Model saved to: ./checkpoints/final_model.pth
+
+Training completed!
+
+(cifar10_env) zhang-ming-shan@ubuntu:~/projects/zms_cifar10_cnn$
 ```
